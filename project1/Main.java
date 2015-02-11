@@ -97,7 +97,7 @@ public class Main {
 							boolean done = p.sleep();
 							
 							if (done) {
-								System.out.println("\tPID " + p.getPid() + " --> READY");
+								System.out.println("\t[" + Thread.currentThread().getName() + "] PID " + p.getPid() + " --> READY");
 								Queue.READY_Q.add(Queue.READY_Q.size(), p);
 								iterator.remove();
 							}
@@ -125,6 +125,7 @@ public class Main {
 							Process	p = iterator.next();
 							
 							if (Queue.EXEC_Q.isEmpty()) {
+								System.out.println("\t[" + Thread.currentThread().getName() + "] PID " + p.getPid() + " --> RUNNING");
 								Queue.EXEC_Q.add(p);
 								iterator.remove();
 							}
@@ -149,19 +150,20 @@ public class Main {
 					continue; //Skip any null processes (shouldn't happen?)
 				}
 				
-				System.out.println("\tPID " + ps.getPid() + " --> RUNNING");
+				/* Run the process */
+				System.out.println("\t> PID " + ps.getPid() + " running on " + Thread.currentThread().getName());
 				boolean done = ps.run();
 				
 				if (ps.isDoneRunning()) { //Process is completely done running
-					System.out.println("\tPID " + ps.getPid() + " --> FINISHED");
+					System.out.println("\t[" + Thread.currentThread().getName() + "]     PID " + ps.getPid() + " --> FINISHED");
 					Queue.FINISH_Q.add(Queue.FINISH_Q.size(), ps);
 					iterator.remove();
 				} else if (done) { //Process is done running it's iteration
-					System.out.println("\tPID " + ps.getPid() + " --> BLOCKED");
+					System.out.println("\t[" + Thread.currentThread().getName() + "]     PID " + ps.getPid() + " --> BLOCKED");
 					Queue.WAIT_Q.add(Queue.WAIT_Q.size(), ps);
 					iterator.remove();
 				} else { //Process was not completed
-					System.out.println("\tPID " + ps.getPid() + " --> READY");
+					System.out.println("\t[" + Thread.currentThread().getName() + "]     PID " + ps.getPid() + " --> READY");
 					Queue.READY_Q.add(Queue.READY_Q.size(), ps);
 					iterator.remove();
 				}
