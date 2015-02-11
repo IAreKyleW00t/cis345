@@ -14,14 +14,21 @@ import java.util.List;
 
 public class Main {
 	/* Global variables */
-	private static final File PROCESSES_FILE = new File("processes.txt");
-	private static Queue WAIT_Q, READY_Q;
+	private static final File DATA_FILE = new File("processes.txt");
+	private static Thread WAIT_THREAD, READY_THREAD;
 
+	/**
+	 * Main Method
+	 * 
+	 * Parses data from "processes.txt" and saves each process into the corresponding
+	 * List. Creates each thread and then starts them when ready.
+	 * 3 Threads total: Running (Main Thread), Waiting (Thread-0), Ready (Thread-1).
+	 */
 	public static void main(String[] args) throws Exception {
-		BufferedReader br = new BufferedReader(new FileReader(PROCESSES_FILE));
+		BufferedReader br = new BufferedReader(new FileReader(DATA_FILE));
 		String line; int count = 0;
 		
-		System.out.println("Loading processes from \"" + PROCESSES_FILE.getName() + "\"...");
+		System.out.println("Loading processes from \"" + DATA_FILE.getName() + "\"...");
 		
 		/* Read each line in PROCESSES_FILE */
 		while ((line = br.readLine()) != null) {
@@ -56,9 +63,9 @@ public class Main {
 			
 			/* Move the process into it's initial queue */
 			if (ps.getState() == 'R') { //Ready-to-run
-				Stack.READY_Q.add(ps);
+				Queue.READY_Q.add(ps);
 			} else if (ps.getState() == 'B') { //Blocked
-				Stack.WAIT_Q.add(ps);
+				Queue.WAIT_Q.add(ps);
 			}
 			count++; //keep track of the number of processes
 			
@@ -69,17 +76,72 @@ public class Main {
 		System.out.println(count + " processes loaded!\n");
 		
 		System.out.println("Running processes...");
-		long start = System.currentTimeMillis();
+		long start = System.currentTimeMillis(); //Start time
 		
-		/* Create and start the Queue's */
-		WAIT_Q = new Queue(new Wait()); //Wait Queue Thread
-		READY_Q = new Queue(new Ready()); //Ready Queue Thread
-		WAIT_Q.start();
-		READY_Q.start();
+		/*
+		 * Creates a WAIT_THREAD which will iterate through the loop
+		 * every 1000ms (1 second). It will decrement the wait counter
+		 * for each process and then remove move it to READY_Q when the counter
+		 * reaches 0.
+		 */
+		WAIT_THREAD = new Thread(new Runnable() {
+			@Override
+			public void run() {
+				while (true) {
+					try {
+						Thread.sleep(1000); //1000ms iteration
+						
+						Iterator<Process> iterator = Queue.WAIT_Q.iterator();
+						while (iterator.hasNext()) {
+							Process p = iterator.next();
+							boolean done = p.sleep();
+							
+							if (done) {
+								System.out.println("\tPID " + p.getPid() + " --> READY");
+								Queue.READY_Q.add(Queue.READY_Q.size(), p);
+								iterator.remove();
+							}
+						}
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+				}
+			}
+		}); //Wait Queue Thread
+		
+		/*
+		 * Creates a READY_THREAD which checks every 100ms if there is a process
+		 * running. If not, it will move the 0th process in the READY_Q to the RUNNING_Q.
+		 */
+		READY_THREAD = new Thread(new Runnable() {
+			@Override
+			public void run() {
+				while (true) {
+					try {
+						Thread.sleep(100); //100ms wait time to prevent concurrency issues
+						
+						Iterator<Process> iterator = Queue.READY_Q.iterator();
+						if (iterator.hasNext()) {
+							Process	p = iterator.next();
+							
+							if (Queue.EXEC_Q.isEmpty()) {
+								Queue.EXEC_Q.add(p);
+								iterator.remove();
+							}
+						}
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+				}
+			}
+		}); //Ready Queue Thread
+		
+		/* Start Threads */
+		WAIT_THREAD.start(); READY_THREAD.start();
 		
 		/* Running Thread */
-		while (Stack.isEmpty() == false) {
-			Iterator<Process> iterator = Stack.EXEC_Q.iterator();
+		while (Queue.isEmpty() == false) {
+			Iterator<Process> iterator = Queue.EXEC_Q.iterator();
 			
 			if (iterator.hasNext()) {
 				Process ps = iterator.next();
@@ -92,21 +154,21 @@ public class Main {
 				
 				if (ps.isDoneRunning()) { //Process is completely done running
 					System.out.println("\tPID " + ps.getPid() + " --> FINISHED");
-					Stack.FINISH_Q.add(Stack.FINISH_Q.size(), ps);
+					Queue.FINISH_Q.add(Queue.FINISH_Q.size(), ps);
 					iterator.remove();
 				} else if (done) { //Process is done running it's iteration
 					System.out.println("\tPID " + ps.getPid() + " --> BLOCKED");
-					Stack.WAIT_Q.add(Stack.WAIT_Q.size(), ps);
+					Queue.WAIT_Q.add(Queue.WAIT_Q.size(), ps);
 					iterator.remove();
 				} else { //Process was not completed
 					System.out.println("\tPID " + ps.getPid() + " --> READY");
-					Stack.READY_Q.add(Stack.READY_Q.size(), ps);
+					Queue.READY_Q.add(Queue.READY_Q.size(), ps);
 					iterator.remove();
 				}
 			}
 		} //end-while
 
-		long end = System.currentTimeMillis();
+		long end = System.currentTimeMillis(); //End time
 		System.out.println("Successfully ran " + count + " processes in " + ((end - start) / 1000.0) + "s");
 		System.exit(0);
 	}
