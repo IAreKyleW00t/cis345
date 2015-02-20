@@ -1,5 +1,5 @@
 /**
- * Name:			Kyle Colantonio, Nick Vladimiroff
+ * Name:			Kyle Colantonio
  * Project:			1
  * Description:		Process Scheduler/Management simulation.
  * Date:			2-23-2015
@@ -151,7 +151,7 @@ public class Main {
 				}
 				
 				/* Run the process */
-				System.out.println("\t> PID " + ps.getPid() + " running on " + Thread.currentThread().getName());
+				System.out.println("\t\t >  PID " + ps.getPid() + " running on " + Thread.currentThread().getName());
 				boolean done = ps.run();
 				
 				if (ps.isDoneRunning()) { //Process is completely done running
