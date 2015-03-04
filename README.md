@@ -1,5 +1,5 @@
 CIS 345/545 - Introduction to Operating Systems
-----------------------------------------------
+-----------------------------------------------
 ###### Professor: Dr. Yaser Doleh; Spring 2015
 
 This is a repository for all projects and assingments done in CIS 345/545.
